@@ -221,6 +221,8 @@ class sfGuardSecurityUser extends sfBasicSecurityUser
 
       } catch (\Exception $e) {
         $this->signOut();
+        header('Location: /');
+        exit;
       }
     }
 
