@@ -108,9 +108,10 @@ class BasesfGuardAuthActions extends sfActions
         return $user;
 
       } catch (Exception $e) {
-        echo $e->getMessage();
-        // Failed to get user details
-        exit('Oh dear...');
+
+        error_log(sprintf('Cannot find user with access token %s', $e->getMessage()));
+
+        throw $e;
       }
     }
   }
