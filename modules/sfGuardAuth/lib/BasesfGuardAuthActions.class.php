@@ -19,6 +19,15 @@ class BasesfGuardAuthActions extends sfActions
 {
   public function executeSignin($request)
   {
+    if (isset($_GET['login']) && $_GET['login'] == 'new')
+    {
+      $user = $this->ssoLogin();
+      $this->getUser()->signin($user, true);
+      $signinUrl = sfConfig::get('app_sf_guard_plugin_success_signin_url');
+
+      return $this->redirect('' != $signinUrl ? $signinUrl : '@homepage');
+
+    }
     $user = $this->getUser();
     if ($user->isAuthenticated())
     {

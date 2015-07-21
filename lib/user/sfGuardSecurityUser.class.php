@@ -215,6 +215,13 @@ class sfGuardSecurityUser extends sfBasicSecurityUser
 
         throw new sfException('The user does not exist anymore in the database.');
       }
+      $ssoProvider = new SsoProvider();
+      try {
+        $userDetails = $ssoProvider->getUserDetails(new \League\OAuth2\Client\Token\AccessToken(['access_token' => $this->user->getAccessToken()]));
+
+      } catch (\Exception $e) {
+        $this->signOut();
+      }
     }
 
     return $this->user;
