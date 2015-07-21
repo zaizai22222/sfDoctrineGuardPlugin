@@ -77,6 +77,44 @@ class BasesfGuardAuthActions extends sfActions
     }
   }
 
+  private function ssoLogin()
+  {
+    $ssoProvider = new SsoProvider();
+    if (!isset($_GET['code'])) {
+
+      // If we don't have an authorization code then get one
+      $authUrl = $ssoProvider->getAuthorizationUrl();
+      header('Location: '.$authUrl);
+      exit;
+
+// Check given state against previously stored one to mitigate CSRF attack
+    } else {
+
+      // Try to get an access token (using the authorization code grant)
+      $token = $ssoProvider->getAccessToken('authorization_code', [
+          'code' => $_GET['code']
+      ]);
+
+      // Optional: Now you have a token you can look up a users profile data
+      try {
+        $userDetails =  $ssoProvider->getUserDetails(new \League\OAuth2\Client\Token\AccessToken(['access_token' => $token->accessToken]));
+        $user = Doctrine_Core::getTable('sfGuardUser')->createQuery()
+            ->select()
+            ->where('username = ?', $userDetails->username)
+            ->execute()->getFirst();
+
+        $user->setAccessToken($token->accessToken);
+        $user->save();
+        return $user;
+
+      } catch (Exception $e) {
+        echo $e->getMessage();
+        // Failed to get user details
+        exit('Oh dear...');
+      }
+    }
+  }
+
   public function executeSignout($request)
   {
     $this->getUser()->signOut();
