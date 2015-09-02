@@ -80,6 +80,12 @@ sfGuardUser:
     access_token:
       type: string(64)
       notnull: false
+    access_token_expiration_date:
+      type: datetime
+      notnull: false
+    last_sso_check_date:
+      type: datetime
+      notnull: false
   indexes:
     is_active_idx:
       fields: [is_active]

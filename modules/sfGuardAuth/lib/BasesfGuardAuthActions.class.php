@@ -17,6 +17,8 @@
  */
 class BasesfGuardAuthActions extends sfActions
 {
+  const ACCESS_TOKEN_DURATION = 86400;
+
   public function executeSignin($request)
   {
     $user = $this->getUser();
@@ -58,7 +60,13 @@ class BasesfGuardAuthActions extends sfActions
             ->where('username = ?', $userDetails->username)
             ->execute()->getFirst();
 
+
+        $currentDate = new \DateTime();
+        $expirationDate = clone $currentDate;
+        $expirationDate->add(new \DateInterval('PT'.self::ACCESS_TOKEN_DURATION.'S'));
+
         $user->setAccessToken($token->accessToken);
+        $user->setAccessTokenExpirationDate($expirationDate->format('Y-m-d H:i:s'));
         $user->save();
         return $user;
 
@@ -73,7 +81,19 @@ class BasesfGuardAuthActions extends sfActions
 
   public function executeSignout($request)
   {
+    $accessToken = $this->getUser()->getGuardUser()->getAccessToken();
     $this->getUser()->signOut();
+
+    $ssoProvider = new SsoProvider();
+
+    try {
+      $ssoProvider->logoutUser($accessToken);
+    } catch (\Exception $e) {
+      if (sfConfig::get('sf_logging_enabled'))
+      {
+        sfContext::getInstance()->getLogger()->error($e->getMessage());
+      }
+    }
 
     $signoutUrl = sfConfig::get('app_sf_guard_plugin_success_signout_url', $request->getReferer());
 

@@ -17,6 +17,8 @@
  */
 class sfGuardSecurityUser extends sfBasicSecurityUser
 {
+  const ACCESS_TOKEN_CHECK_DURATION = 300;
+
   protected $user = null;
 
   /**
@@ -215,10 +217,20 @@ class sfGuardSecurityUser extends sfBasicSecurityUser
 
         throw new sfException('The user does not exist anymore in the database.');
       }
-      $ssoProvider = new SsoProvider();
-      try {
-        $userDetails = $ssoProvider->getUserDetails(new \League\OAuth2\Client\Token\AccessToken(['access_token' => $this->user->getAccessToken()]));
 
+      $accessToken = $this->user->getAccessToken();
+
+      $ssoProvider = new SsoProvider();
+      $currentDateTime = new \DateTime();
+
+      try {
+        if ($accessToken === null || (new \DateTime($this->user->getAccessTokenExpirationDate())) < $currentDateTime) {
+            throw new \Exception(sprintf('Access token not found or expired for user %s', $this->user->getUsername()));
+        } elseif ((new \DateTime($this->user->getLastSsoCheckDate()))->add((new \DateInterval('PT'.self::ACCESS_TOKEN_CHECK_DURATION.'S'))) < $currentDateTime) {
+          $userDetails = $ssoProvider->getUserDetails(new \League\OAuth2\Client\Token\AccessToken(['access_token' => $accessToken]));
+          $this->user->setLastSsoCheckDate($currentDateTime->format('Y-m-d H:i:s'));
+          $this->user->save();
+        }
       } catch (\Exception $e) {
         $this->signOut();
         header('Location: /');
